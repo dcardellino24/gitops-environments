@@ -46,6 +46,7 @@ With the base and variants ready we can now define every final environment with 
 Here is an example of the staging `nane1` environment:
 
 ```yaml
+# clusters/staging-nane1/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -64,3 +65,49 @@ patchesStrategicMerge:
 
 First we define some common properties. We inherit all configuration from base, from non-prod environments and for all environments in North America North East.
 
+To test the kustomization we can use `kustomize` to template it:
+
+`kustomize build clusters/staging-nane1`
+
+This command results in the following manifest:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: simple-secret
+stringData:
+  clusterName: staging-nane1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    codefresh.io/app: simple-go-app
+  name: simple-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trivial-go-web-app
+  template:
+    metadata:
+      labels:
+        app: trivial-go-web-app
+    spec:
+      containers:
+      - env:
+        - name: REGION
+          value: nane1
+        - name: ENV_TYPE
+          value: staging
+        - name: DB_USER
+          value: "staging_username"
+        - name: DB_PASSWORD
+          value: "staging_password"   
+        image: docker.io/kostiscodefresh/simple-env-app:1.0
+        imagePullPolicy: Always
+        name: webserver-simple
+        ports:
+        - containerPort: 8080
+```
